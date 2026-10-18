@@ -1,0 +1,24 @@
+# Python 编译产物
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller 构建产物
+build/
+dist/
+*.spec
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 本地运行产生的日志/报告
+*.log
+install-report-*.txt
+
+# 虚拟环境
+.venv/
+venv/

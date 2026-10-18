@@ -1,0 +1,9 @@
+# 合成样例：Git 全局配置（INI 格式）
+[user]
+	name = Demo User
+	email = demo@example.com
+[core]
+	autocrlf = true
+	editor = code --wait
+[init]
+	defaultBranch = main

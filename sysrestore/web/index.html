@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系统复原工具 SystemRestore</title>
+<style>
+  :root{
+    --bg:#f3f4f6; --card:#ffffff; --border:#d1d5db; --border-soft:#e5e7eb;
+    --ink:#111827; --muted:#6b7280; --accent:#2563eb; --accent-dark:#1d4ed8;
+    --ok:#15803d; --fail:#b91c1c; --warn:#b45309; --accent-soft:#eff6ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font:14px/1.55 "Microsoft YaHei UI","Segoe UI",sans-serif; min-height:100vh;}
+  header{background:var(--card); border-bottom:1px solid var(--border); padding:10px 22px; display:flex; align-items:center; gap:18px; position:sticky; top:0; z-index:20;}
+  .btn-exit{margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap;}
+  .btn-exit:hover{color:var(--fail); border-color:var(--fail);}
+  .desc-line{font-size:11.5px; color:var(--muted); margin-top:2px; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:400;}
+  .desc-line.desc-unknown{font-style:italic; opacity:.75;}
+  .logo{display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px;}
+  .logo .mark{width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800;}
+  .tabs{display:flex; gap:6px; margin-left:8px;}
+  .tabs button{border:none; background:transparent; padding:8px 16px; border-radius:8px; font-size:14px; color:var(--muted); cursor:pointer; font-weight:600;}
+  .tabs button.active{background:var(--accent-soft); color:var(--accent);}
+  .tabs button:hover{color:var(--ink);}
+  .badges{margin-left:auto; display:flex; gap:8px; font-size:12px; color:var(--muted); flex-wrap:wrap; justify-content:flex-end;}
+  .badge{background:#f3f4f6; border:1px solid var(--border-soft); border-radius:999px; padding:2px 10px; white-space:nowrap;}
+  .badge.warn{color:var(--warn); border-color:#fcd34d; background:#fffbeb;}
+  main{max-width:1280px; margin:0 auto; padding:20px 22px 60px;}
+  .page{display:none;} .page.active{display:block;}
+  h2{font-size:17px; margin-bottom:6px;}
+  .hint{color:var(--muted); font-size:13px; margin-bottom:14px;}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px;}
+  .intro{background:var(--accent-soft); border-color:#bfdbfe; font-size:13.5px; line-height:1.8;}
+  .intro p{margin-top:7px;}
+  details.intro summary{cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; user-select:none;}
+  details.intro summary::-webkit-details-marker{display:none;}
+  details.intro summary::after{content:"▸"; margin-left:auto; color:var(--accent); font-size:12px;}
+  details.intro[open] summary::after{content:"▾";}
+  .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  button{font:inherit; border:1px solid var(--border); background:var(--card); border-radius:8px; padding:7px 15px; cursor:pointer; color:var(--ink);}
+  button:hover{border-color:#93c5fd; background:var(--accent-soft);}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; padding:8px 20px;}
+  button.primary:hover{background:var(--accent-dark);}
+  button.danger{color:var(--fail); border-color:#fca5a5;}
+  button.danger:hover{background:#fef2f2; border-color:var(--fail);}
+  button:disabled{opacity:.5; cursor:not-allowed;}
+  input[type=text], input[type=number], select{border:1px solid var(--border); border-radius:8px; padding:7px 10px; font:inherit; background:#fff; color:var(--ink);}
+  input[type=text]{min-width:220px;}
+  label.check{display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;}
+  .progress{flex:1; height:8px; background:var(--border-soft); border-radius:999px; overflow:hidden; min-width:120px;}
+  .progress>div{height:100%; background:var(--accent); width:0%; transition:width .3s;}
+  table{width:100%; border-collapse:collapse; background:var(--card);}
+  .table-wrap{border:1px solid var(--border); border-radius:12px; overflow:auto; max-height:52vh; background:var(--card);}
+  th{position:sticky; top:0; background:#f9fafb; text-align:left; font-size:12.5px; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; z-index:2;}
+  td{padding:7px 10px; border-bottom:1px solid var(--border-soft); font-size:13px; vertical-align:top;}
+  tr:hover td{background:#f9fafb;}
+  tr:last-child td{border-bottom:none;}
+  .mono{font-family:Consolas,monospace; font-size:12px; color:var(--muted);}
+  .tag{display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; background:#f3f4f6; border:1px solid var(--border-soft); white-space:nowrap;}
+  .tag.dev{background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;}
+  .tag.lib{background:#f0fdf4; color:#15803d; border-color:#bbf7d0;}
+  .tag.store{background:#fdf4ff; color:#a21caf; border-color:#f5d0fe;}
+  .st{font-weight:600; white-space:nowrap;}
+  .st.ok{color:var(--ok);} .st.fail{color:var(--fail);} .st.manual{color:var(--warn);} .st.skip{color:var(--muted);} .st.running{color:var(--accent);} .st.exists{color:#0369a1;}
+  .probe-yes{color:#0369a1; font-weight:600; white-space:nowrap;} .probe-no{color:var(--muted); white-space:nowrap;} .probe-unknown{color:var(--muted); white-space:nowrap;}
+  .muted{color:var(--muted);} .small{font-size:12px;}
+  .preflight{background:#fffbeb; border:1px solid #fcd34d; color:#92400e; border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:12px;}
+  .preflight b{color:var(--warn);}
+  .preflight.good{background:#f0fdf4; border-color:#bbf7d0; color:#166534;}
+  #log{background:#ffffff; border:1px solid var(--border); border-radius:12px; font-family:Consolas,monospace; font-size:12px; padding:12px 14px; height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; color:#374151;}
+  #log .cmd{color:var(--accent);} #log .err{color:var(--fail);} #log .ok{color:var(--ok);}
+  .modal-mask{position:fixed; inset:0; background:rgba(17,24,39,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .modal-mask.show{display:flex;}
+  .modal{background:#fff; border-radius:14px; width:640px; max-width:96vw; max-height:88vh; overflow:auto; padding:20px 22px; box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .modal h3{font-size:16px; margin-bottom:14px;}
+  .form-grid{display:grid; grid-template-columns:96px 1fr; gap:10px 14px; align-items:center;}
+  .form-grid label{color:var(--muted); font-size:13px; text-align:right;}
+  .form-grid input[type=text], .form-grid select{width:100%;}
+  .form-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
+  .toast-wrap{position:fixed; top:16px; right:16px; z-index:100; display:flex; flex-direction:column; gap:8px;}
+  .toast{background:#111827; color:#fff; padding:10px 16px; border-radius:10px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.25); animation:slidein .2s ease; max-width:420px;}
+  .toast.err{background:var(--fail);} .toast.ok{background:var(--ok);}
+  @keyframes slidein{from{transform:translateX(20px); opacity:0;} to{transform:none; opacity:1;}}
+  .path-list{max-height:300px; overflow:auto; border:1px solid var(--border-soft); border-radius:8px; margin:10px 0;}
+  .path-list div{padding:7px 12px; cursor:pointer; display:flex; gap:8px; align-items:center; font-size:13px;}
+  .path-list div:hover{background:var(--accent-soft);}
+  .path-list .ico{width:18px; text-align:center;}
+  .empty{padding:36px; text-align:center; color:var(--muted);}
+  kbd{background:#f3f4f6; border:1px solid var(--border); border-bottom-width:2px; border-radius:5px; padding:0 5px; font-size:12px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="mark">S</span><span>系统复原工具 <span class="muted small">SystemRestore</span></span></div>
+  <nav class="tabs">
+    <button data-tab="scan" class="active">① 扫描系统</button>
+    <button data-tab="manifest">② 安装清单</button>
+    <button data-tab="install">③ 一键安装</button>
+  </nav>
+  <div class="badges" id="badges"></div>
+  <button class="btn-exit" id="btn-exit" title="彻底退出工具：结束后台进程，本页面随之失效">退出工具</button>
+</header>
+
+<main>
+  <!-- ============ 页签①：扫描 ============ -->
+  <section class="page active" id="page-scan">
+    <h2>重装系统前：先扫描本机，把已安装的软件和开发环境记录成清单</h2>
+    <p class="hint">扫描只读取系统信息，不会修改任何内容。清单位置默认保存在 <b>桌面\SystemRestore</b> 文件夹（不存在会自动创建）；
+    扫描完成后请把清单文件夹<b>整个拷贝到 U 盘或网盘</b>，重装后打开本工具 → 打开清单 → 一键安装即可复原。</p>
+    <div class="card">
+      <div class="row" style="margin-bottom:12px;">
+        <label class="check"><input type="checkbox" id="opt-store" checked> 商店应用</label>
+        <label class="check"><input type="checkbox" id="opt-wsl" checked> WSL 发行版</label>
+        <label class="check"><input type="checkbox" id="opt-npm" checked> npm 全局包</label>
+        <label class="check"><input type="checkbox" id="opt-pip" checked> pip 包</label>
+        <label class="check"><input type="checkbox" id="opt-cfg" checked> 备份常用配置文件</label>
+        <label class="check" title="Edge、OneDrive、Windows 内置应用等新系统自带的内容，不记入清单"><input type="checkbox" id="opt-inbox" checked> 排除系统自带组件</label>
+      </div>
+      <div class="row">
+        <span class="muted small">清单保存位置：</span>
+        <input type="text" id="scan-folder" style="flex:1; min-width:320px;" placeholder="默认：桌面\SystemRestore">
+        <button id="btn-browse-folder">浏览…</button>
+        <button class="primary" id="btn-scan">开始扫描</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <span class="muted small">本地安装包目录：</span>
+        <input type="text" id="scan-localdir" style="flex:1; min-width:320px;" placeholder="默认：清单位置下的 packages 文件夹（放入下载好的 .exe/.msi 安装包）">
+        <button id="btn-browse-localdir">浏览…</button>
+        <label class="check" title="扫描该目录中的 .exe/.msi：能匹配上已有软件的优先本地安装（不联网下载），匹配不上的单独成条目"><input type="checkbox" id="opt-local" checked> 扫描本地安装包</label>
+      </div>
+      <p class="muted small" style="margin-top:6px;">有下载好的安装包（.exe/.msi）？把它们放进上面的目录再扫描，重装后直接本地安装，不依赖 winget 源、不耗流量；匹配不上原条目的会单独列为「本地安装包」条目，也可在条目编辑里逐个指定。</p>
+      <div class="row" style="margin-top:12px;">
+        <div class="progress"><div id="scan-bar"></div></div>
+        <span class="muted small" id="scan-status">尚未扫描</span>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:10px;">
+      <button id="btn-check-all">全选</button>
+      <button id="btn-check-none">全不选</button>
+      <button id="btn-check-invert">反选</button>
+      <span class="muted small" style="margin-left:auto;">点击表格第一列的勾选框选择要恢复的项目</span>
+    </div>
+    <div class="table-wrap"><table id="tbl-scan"></table></div>
+  </section>
+
+  <!-- ============ 页签②：清单 ============ -->
+  <section class="page" id="page-manifest">
+    <h2>安装清单：勾选重装后需要恢复的项目，可增删改</h2>
+    <details class="card intro">
+      <summary><b>这个软件是做什么的？</b><span class="muted small" style="font-weight:400;">（点击展开 / 收起）</span></summary>
+      <p>系统复原工具：重装系统<b>之前</b>，它把本机已安装的软件和编程环境（Git / Node / Python / Java / VS Code…）扫描成一份清单；
+      重装系统<b>之后</b>，只需安装本工具 → 打开清单 → 点击「一键安装」，即可按清单复原原系统的软件和环境，不必再逐个回忆、逐个下载。</p>
+      <p><b>清单完全由您自己决定：</b>每个条目都可以<b>删除</b>（选中行 → 点「删除选中」）、<b>编辑</b>（双击行，可改安装方式/版本/直链）、
+      <b>新增</b>（点「＋ 新增条目」手工补充扫描漏掉的软件）；第一列的勾选框决定该条目是否参与恢复——不勾选就不会安装，取消勾选即可，无需删除。</p>
+      <p class="muted small">系统自带的内容（Edge、OneDrive、Windows 内置应用等，新系统装完就有）扫描时已自动排除，不会出现在清单里；
+      如确需保留某类系统组件，可在「① 扫描系统」取消勾选「排除系统自带组件」后重新扫描。</p>
+      <p class="muted small">用完后请点页面<b>右上角「退出工具」</b>按钮退出——直接关闭浏览器标签页不会结束后台进程。</p>
+    </details>
+    <p class="hint">重装系统后：打开本工具 → 打开清单文件(.json) → 切到「一键安装」。清单文件与同目录下的 configs 文件夹要一起拷贝，否则配置文件无法恢复。</p>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="search" placeholder="搜索名称 / 标识 / 备注…">
+        <select id="filter-cat"></select>
+        <button id="btn-open-manifest">打开清单…</button>
+        <button id="btn-save-manifest">保存清单</button>
+        <button class="primary" id="btn-add-item">＋ 新增条目</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="tbl-manifest"></table></div>
+    <div class="row" style="margin-top:10px;">
+      <button id="btn-edit-item">编辑选中</button>
+      <button class="danger" id="btn-del-item">删除选中</button>
+      <span class="muted small" style="margin-left:auto;">双击行可编辑；右键可打开下载页面</span>
+    </div>
+  </section>
+
+  <!-- ============ 页签③：安装 ============ -->
+  <section class="page" id="page-install">
+    <h2>重装系统后：打开清单，点击「开始一键安装」</h2>
+    <p class="hint">安装前会自动比对新系统现状：<b>已经装过的软件不会重复安装</b>。安装按 运行库 → 开发工具 → 应用 → 商店 → WSL → npm → pip → 配置 的顺序自动进行；
+    <b>安装结束后会自动配置环境变量</b>（把 Node / Python / Java / Go / Git 等目录补进用户 PATH、设置 JAVA_HOME，无需手动设置）；单项失败不影响其余，结束后生成安装报告。</p>
+    <p class="hint"><b>本地安装包优先：</b>扫描时把下载好的 .exe/.msi 放进「本地安装包目录」后，对应条目会带 📦 标记——安装时优先运行本地文件（不联网、不依赖 winget 源）；本地文件找不到时自动回退该条目原来的安装方式。</p>
+    <div class="preflight good" id="preflight">加载中…</div>
+    <div class="card">
+      <div class="row">
+        <button class="primary" id="btn-install">开始一键安装</button>
+        <button id="btn-stop" disabled>停止</button>
+        <button id="btn-retry" disabled>重试失败项</button>
+        <button id="btn-probe">检测系统现状</button>
+        <button id="btn-fixpath" title="把已安装开发工具的目录自动补进用户 PATH、设置 JAVA_HOME，并应用清单里的 PATH 快照">补齐环境变量</button>
+        <div class="progress"><div id="install-bar"></div></div>
+        <span class="muted small" id="install-count"></span>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label class="check"><input type="checkbox" id="opt-force"> 强制重装（对检测到已存在的条目也重新安装）</label>
+        <span class="muted small" id="probe-status" style="margin-left:auto;"></span>
+      </div>
+    </div>
+    <div class="table-wrap" style="max-height:40vh;"><table id="tbl-install"></table></div>
+    <h3 style="margin:16px 0 8px; font-size:14px;">安装日志</h3>
+    <div id="log"></div>
+  </section>
+</main>
+
+<!-- ============ 条目编辑对话框 ============ -->
+<div class="modal-mask" id="modal-item">
+  <div class="modal">
+    <h3 id="item-dlg-title">编辑条目</h3>
+    <div class="form-grid">
+      <label>名称 *</label><input type="text" id="f-name">
+      <label>版本</label><input type="text" id="f-version">
+      <label>发行商</label><input type="text" id="f-publisher">
+      <label>分类</label><select id="f-category"></select>
+      <label>安装方式</label><select id="f-method"></select>
+      <label>标识 / 地址</label><div class="row" style="gap:6px;"><input type="text" id="f-target" style="flex:1;"><button id="f-target-browse" style="display:none;" title="选择本地安装包（.exe/.msi）">浏览…</button></div>
+      <label>静默参数</label><input type="text" id="f-silent" placeholder="如 /S、/VERYSILENT /SUPPRESSMSGBOXES、/qn">
+      <label>备注</label><input type="text" id="f-notes">
+      <label>用途说明</label><input type="text" id="f-desc" placeholder="这个软件/环境是做什么用的（扫描时自动生成，可修改）">
+      <label></label><label class="check"><input type="checkbox" id="f-enabled" checked> 参与一键安装</label>
+    </div>
+    <div class="form-actions">
+      <button id="item-cancel">取消</button>
+      <button class="primary" id="item-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 路径选择对话框 ============ -->
+<div class="modal-mask" id="modal-path">
+  <div class="modal" style="width:560px;">
+    <h3 id="path-title">选择路径</h3>
+    <div class="row" style="margin-bottom:8px;">
+      <button id="path-up">⬆ 上级</button>
+      <span class="mono" id="path-current" style="flex:1; overflow:hidden; text-overflow:ellipsis;"></span>
+    </div>
+    <div class="row" id="path-drives" style="margin-bottom:8px;"></div>
+    <div class="path-list" id="path-list"></div>
+    <div class="row">
+      <span class="muted small">已选：</span>
+      <input type="text" id="path-selected" style="flex:1;">
+    </div>
+    <div class="form-actions">
+      <button id="path-cancel">取消</button>
+      <button class="primary" id="path-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 帮助对话框 ============ -->
+<div class="modal-mask" id="modal-help">
+  <div class="modal">
+    <h3>使用说明</h3>
+    <div style="font-size:13.5px; line-height:1.8;">
+      <p><b>重装系统前（在旧系统上操作）：</b><br>
+      1. 进入「① 扫描系统」，勾选要扫描的内容，选择清单保存位置，点击「开始扫描」；<br>
+      2. 扫描完成后，把生成的清单文件夹<b>整个拷贝到 U 盘或网盘</b>（manifest.json 和 configs 文件夹要在一起）。</p>
+      <p style="margin-top:10px;"><b>重装系统后（在新系统上操作）：</b><br>
+      1. 打开本工具，进入「② 安装清单」，点击「打开清单」选择 manifest.json；<br>
+      2. 按需勾选/取消条目，也可以新增、编辑、删除；<br>
+      3. 进入「③ 一键安装」，点击「开始一键安装」，等待完成。<br>
+      建议以<b>管理员身份</b>运行（打包版右键 exe → 以管理员身份运行），否则很多软件装不上。</p>
+      <p style="margin-top:10px;"><b>安装方式说明：</b><br>
+      · winget / 商店：自动安装，优先使用；<br>
+      · Chocolatey / Scoop：本机装有对应包管理器时可用；<br>
+      · npm -g / pip：恢复 Node/Python 全局包（需先装好 Node/Python）；<br>
+      · WSL：重新安装原发行版（可能需要重启）；<br>
+      · 直链静默安装：需填写安装包直链和静默参数；<br>
+      · 手动安装：无法自动处理的会标「需手动」，请按备注手动安装，也可双击条目补上直链。</p>
+      <p style="margin-top:10px;"><b>本地安装包（有下载好的安装包时用它）：</b><br>
+      重装前把下载好的 .exe/.msi 安装包放进「① 扫描系统」里的<b>本地安装包目录</b>（默认 桌面\SystemRestore\packages），扫描时会自动做两件事：
+      能按名称匹配上已有软件的，给该条目打上 📦 标记——安装时优先运行本地文件，不联网、不依赖 winget 源，本地文件找不到才回退原安装方式；
+      匹配不上的安装包会单独成为「本地安装包」条目。也可以在「② 安装清单」双击任意条目，把安装方式改成「本地安装包」并点「浏览…」逐个指定。
+      <span class="muted">.msi 自动走 msiexec 静默安装；.exe 默认加 /S 静默参数（NSIS 通用），个别安装器不识别时可在条目编辑的「静默参数」里改。</span></p>
+      <p style="margin-top:10px;"><b>系统自带组件会自动排除：</b><br>
+      Edge、OneDrive 以及 Windows 内置应用（照片、计算器、邮件、终端、Xbox 等）在新系统装完后就有，扫描时默认不记入清单
+      （Edge WebView2 运行时例外，很多应用依赖它，会保留）。如确需保留某类系统组件，在「① 扫描系统」取消勾选「排除系统自带组件」后重新扫描即可。</p>
+      <p style="margin-top:10px;"><b>安装前自动比对新系统：</b><br>
+      点「开始一键安装」前，工具会先检测新系统里已经有什么——已安装的软件（版本相符）不会重复安装，安装表中「系统现状」列会标注每一项是「✔ 已存在」还是「未安装」。
+      也可以随时点「检测系统现状」单独预览；确需重装某个已存在的软件，勾选「强制重装」即可。</p>
+      <p style="margin-top:10px;"><b>用途说明：</b><br>
+      扫描时会自动为每个条目生成一句中文说明（这个软件/环境是做什么用的），显示在条目名称下方——时间久了不记得某个软件是干嘛用的，看一眼就知道。
+      说明由内置的常见软件库自动匹配生成，双击条目即可修改；识别不出的条目只按类别给通用说明，也欢迎自己补上。</p>
+      <p style="margin-top:10px;"><b>怎么退出工具：</b><br>
+      本工具的界面就是浏览器页面，exe 本身是后台进程——<b>直接关闭浏览器标签页不会退出工具</b>，进程还会在后台运行。
+      请点页面<b>右上角的「退出工具」按钮</b>彻底退出（会同时结束后台进程）；直接关标签页时浏览器也会弹确认框提醒您。
+      另外，关闭启动时的黑色命令行窗口、或按 Ctrl+C，同样可以退出。</p>
+      <p style="margin-top:10px;"><b>环境变量自动配置：</b><br>
+      很多开发环境（Node / Python / Java / Go / Git…）装好后还要配 PATH 才能在任何目录使用。本工具在安装结束后会<b>自动</b>把它们的目录补进当前用户的 PATH、
+      自动设置 JAVA_HOME 等环境变量（只增不删，仅写入当前用户，不影响系统级设置），对新打开的终端 / 程序生效。
+      如果之后仍发现某命令不能用，点「③ 一键安装」页的「补齐环境变量」即可手动补一次（会同时应用清单里记录的原系统 PATH 快照）。</p>
+      <p style="margin-top:10px;"><b>小贴士：</b><br>
+      · winget 没有收录的软件会标记为「手动安装」；<br>
+      · pip/npm 条目默认全选，恢复时间较长，可按需取消；<br>
+      · 「补齐环境变量」只做「只增不删」的补齐，不会删除您现有的 PATH 条目。</p>
+    </div>
+    <div class="form-actions"><button class="primary" id="help-ok">知道了</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const CATEGORIES = ["开发工具","应用软件","运行库","商店应用","WSL","npm 全局包","Python 包","配置文件","其他"];
+const METHOD_LABELS = {"winget":"winget","winget-store":"winget·商店","choco":"Chocolatey","scoop":"Scoop","url":"直链静默安装","manual":"手动安装","npm":"npm -g","pip":"pip","wsl":"WSL","config":"配置恢复","local":"本地安装包"};
+const METHOD_PLACEHOLDERS = {
+  "winget":"winget 包 ID，例如：Git.Git","winget-store":"商店包 ID，例如：XP9KHM4BK9FZ7Q",
+  "choco":"Chocolatey 包名，例如：git","scoop":"Scoop 包名，例如：git",
+  "url":"安装包直链地址 https://...","npm":"包名或 包名@版本","pip":"包名==版本",
+  "wsl":"WSL 发行版名称，例如：Ubuntu-24.04","config":"配置键（由扫描自动生成）","manual":"可填写下载页面地址",
+  "local":"安装包文件名（放在本地安装包目录）或完整路径，点右侧「浏览…」选择"};
+const STATUS_CLASS = {"成功":"ok","失败":"fail","需手动":"manual","跳过":"skip","安装中":"running","已存在":"exists"};
+
+const S = { items:[], installItems:[], stats:{}, scanTimer:null, installTimer:null, probeTimer:null, probe:null, selected:{scan:new Set(), manifest:new Set()}, editingIndex:-1, pathMode:"file", pathOnPick:null, installStatus:null };
+
+async function api(path, opts){
+  const res = await fetch(path, Object.assign({headers:{"Content-Type":"application/json"}}, opts||{}));
+  const data = await res.json().catch(()=>({ok:false, message:"服务无响应"}));
+  if(!data.ok && data.message) toast(data.message, "err");
+  return data;
+}
+function toast(msg, cls){
+  const d = document.createElement("div");
+  d.className = "toast" + (cls ? " " + cls : "");
+  d.textContent = msg;
+  $("toasts").appendChild(d);
+  setTimeout(()=>{ d.style.opacity="0"; d.style.transition="opacity .4s"; setTimeout(()=>d.remove(), 400); }, 3200);
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+// 名称下方的用途说明小字（悬停显示全文）；未识别时给占位提示
+function descLine(d){ return d ? `<div class="desc-line" title="${esc(d)}">${esc(d)}</div>` : `<div class="desc-line desc-unknown">用途未知，双击可补充</div>`; }
+
+/* ---------- 页签切换 ---------- */
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    $("page-" + b.dataset.tab).classList.add("active");
+    if(b.dataset.tab === "install"){ renderPreflight(); pollProbe(); pollInstall(); }
+  });
+});
+
+/* ---------- 数据加载 ---------- */
+async function refreshStats(){
+  const r = await api("/api/state");
+  if(!r || r.ok === false) return;  // 仅明确失败时退出；GET 接口缺 ok 字段不阻断渲染
+  S.stats = r.stats || {};
+  const st = S.stats;
+  const badges = [
+    `<span class="badge">条目 ${st.total||0}（勾选 ${st.enabled||0}）</span>`,
+    st.local_count ? `<span class="badge" title="带本地安装包的条目：安装时优先用本地文件，找不到再按原方式">📦 本地安装包 ${st.local_count}</span>` : "",
+    `<span class="badge ${st.admin?"":"warn"}">管理员：${st.admin?"是":"否"}</span>`,
+    `<span class="badge ${st.winget?"":"warn"}">winget：${st.winget?"已检测到":"未检测到"}</span>`,
+    st.manifest_path ? `<span class="badge" title="${esc(st.manifest_path)}">清单：${esc(st.manifest_path.split(/[\\/]/).pop())}</span>` : "",
+  ].join("");
+  $("badges").innerHTML = badges;
+  renderPreflight();
+}
+async function refreshItems(){
+  const search = $("search").value, cat = $("filter-cat").value;
+  const r = await api(`/api/items?search=${encodeURIComponent(search)}&cat=${encodeURIComponent(cat)}`);
+  S.items = r.items || [];
+  renderTable($("tbl-scan"), S.items, "scan");
+  renderTable($("tbl-manifest"), S.items, "manifest");
+  await refreshInstallItems();
+}
+async function refreshInstallItems(){
+  const r = await api("/api/items?order=install");
+  S.installItems = (r.items || []).filter(i => i.enabled);
+  renderInstallTable();
+}
+function catClass(c){
+  if(c==="开发工具") return "dev"; if(c==="运行库") return "lib"; if(c==="商店应用") return "store"; return "";
+}
+function renderTable(tbl, items, kind){
+  if(!items.length){
+    tbl.innerHTML = `<tr><td class="empty">${kind==="install"?"加载清单后这里会显示待安装条目":"暂无条目 — 请先扫描系统，或打开/新增清单"}</td></tr>`;
+    return;
+  }
+  const head = kind==="install"
+    ? ["","名称","版本","安装方式","系统现状","状态","信息"]
+    : ["","名称","版本","分类","安装方式","标识 / 地址","备注"];
+  let html = "<tr>" + head.map(h=>`<th>${h}</th>`).join("") + "</tr>";
+  const statuses = (S.installStatus && S.installStatus.items) || {};
+  const probes = (S.installStatus && S.installStatus.probe) || {};
+  const locals = (S.installStatus && S.installStatus.local) || {};
+  for(const it of items){
+    const key = it.method+"|"+(it.target||it.name);
+    const status = kind==="install" ? (statuses[key] || ["等待",""]) : null;
+    const stCls = status ? (STATUS_CLASS[status[0]]||"") : "";
+    const pr = kind==="install" ? probes[key] : null;
+    const prCell = kind==="install"
+      ? (pr ? (pr.state==="exists"
+          ? `<span class="probe-yes" title="${esc(pr.detail||"")}">✔ 已存在</span>`
+          : `<span class="probe-no" title="${esc(pr.detail||"")}">未安装</span>`)
+        : `<span class="probe-unknown">未检测</span>`)
+      : "";
+    if(kind==="install"){
+      const lc = locals[key];
+      const localBadge = lc
+        ? `<div class="small" style="margin-top:2px;" title="${esc(lc.path || ("将在目录中查找: " + (lc.dir || "未设置")))}">${lc.found ? "📦 本地包就绪" : (it.method==="local" ? "📦 本地包缺失" : "📦 本地包缺失→回退原方式")}</div>`
+        : "";
+      html += `<tr data-index="${it.index}">
+        <td><input type="checkbox" ${it.enabled?"checked":""} data-idx="${it.index}"></td>
+        <td>${esc(it.name)}${descLine(it.desc)}</td><td class="mono">${esc(it.version)}</td>
+        <td><span class="tag">${esc(it.method_name)}</span>${localBadge}</td>
+        <td class="small">${prCell}</td>
+        <td class="st ${stCls}">${esc(status?status[0]:"")}</td>
+        <td class="small muted">${esc(status?status[1]:"")}</td></tr>`;
+    }else{
+      const targetCell = it.local_file
+        ? `<span title="本地安装包：${esc(it.local_file)}">📦 ${esc(it.local_file)}</span>`
+        : esc(it.target || it.install_location || "");
+      html += `<tr data-index="${it.index}" title="双击编辑">
+        <td><input type="checkbox" ${it.enabled?"checked":""} data-idx="${it.index}"></td>
+        <td>${esc(it.name)}${descLine(it.desc)}</td>
+        <td class="mono">${esc(it.version)}</td>
+        <td><span class="tag ${catClass(it.category)}">${esc(it.category)}</span></td>
+        <td><span class="tag">${esc(it.method_name)}</span></td>
+        <td class="mono" style="max-width:280px; overflow:hidden; text-overflow:ellipsis;">${targetCell}</td>
+        <td class="small muted" style="max-width:220px;">${esc(it.notes||"")}</td></tr>`;
+    }
+  }
+  tbl.innerHTML = html;
+}
+function renderInstallTable(){
+  renderTable($("tbl-install"), S.installItems, "install");
+}
+function renderPreflight(){
+  const st = S.stats;
+  const el = $("preflight");
+  if(!st.total){ el.className = "preflight"; el.textContent = "清单为空 — 请先扫描系统或打开清单"; return; }
+  const parts = [`待安装 <b>${st.enabled||0}</b> 项`];
+  const warnings = [];
+  if(st.manual_count) warnings.push(`其中 <b>${st.manual_count}</b> 项无法自动安装（状态为「需手动」，请按备注手动处理，或编辑条目补上直链地址和静默参数）`);
+  if(!st.admin) warnings.push("当前<b>不是管理员身份</b>，很多软件安装会失败，建议右键以管理员身份重新运行");
+  if(st.winget_missing) warnings.push("未检测到 <b>winget</b>，相关条目会失败；可先在微软商店安装「应用安装程序」");
+  if(st.config_dir==="" && st.manifest_path) warnings.push("清单记录了配置备份目录，但当前找不到该目录，配置恢复会失败");
+  el.className = "preflight" + (warnings.length?"":" good");
+  el.innerHTML = parts.join("　") + (warnings.length ? "<br>⚠ " + warnings.join("<br>⚠ ") : "<br>✓ 环境就绪，可以开始安装");
+}
+
+/* ---------- 表格事件 ---------- */
+function bindTable(tbl, kind){
+  tbl.addEventListener("change", async (e)=>{
+    if(e.target.matches("input[type=checkbox]")){
+      const idx = +e.target.dataset.idx;
+      await api("/api/items/enabled", {method:"POST", body:JSON.stringify({indexes:[idx], enabled:e.target.checked})});
+      refreshStats(); refreshItems();
+    }
+  });
+  tbl.addEventListener("dblclick", (e)=>{
+    const tr = e.target.closest("tr"); if(!tr || !tr.dataset.index) return;
+    openItemDialog(S.items.find(i=>i.index===+tr.dataset.index));
+  });
+}
+bindTable($("tbl-scan")); bindTable($("tbl-manifest"));
+
+/* ---------- 扫描 ---------- */
+$("btn-browse-folder").addEventListener("click", ()=> openPathBrowser("dir", $("scan-folder").value, p=>{ $("scan-folder").value = p; }));
+$("btn-browse-localdir").addEventListener("click", ()=> openPathBrowser("dir", $("scan-localdir").value, p=>{ $("scan-localdir").value = p; }));
+$("btn-scan").addEventListener("click", async ()=>{
+  const folder = $("scan-folder").value.trim();
+  if(!folder){ toast("请先选择清单保存位置", "err"); return; }
+  const r = await api("/api/scan", {method:"POST", body:JSON.stringify({
+    folder, store:$("opt-store").checked, wsl:$("opt-wsl").checked,
+    npm:$("opt-npm").checked, pip:$("opt-pip").checked, configs:$("opt-cfg").checked,
+    inbox:$("opt-inbox").checked,
+    local:$("opt-local").checked, local_dir:$("scan-localdir").value.trim()})});
+  if(!r.ok) return;
+  $("btn-scan").disabled = true;
+  S.scanTimer = setInterval(pollScan, 500);
+  pollScan();
+});
+async function pollScan(){
+  const s = await (await fetch("/api/scan/status")).json();
+  const pct = s.total ? Math.round(100*(s.done||0)/s.total) : 0;
+  $("scan-bar").style.width = pct + "%";
+  $("scan-status").textContent = s.running ? `${s.step}（${Math.min((s.done||0)+1, s.total||1)}/${s.total||"?"}）` : (s.message||"尚未扫描");
+  if(!s.running){
+    clearInterval(S.scanTimer); S.scanTimer = null;
+    $("btn-scan").disabled = false;
+    if(s.error){ toast("扫描失败：" + s.error, "err"); return; }
+    if(s.result){
+      const cats = Object.entries(s.result.by_category||{}).map(([k,v])=>`${k} ${v}`).join("，");
+      const nInbox = s.result.inbox_filtered || 0;
+      const inboxNote = nInbox ? `，已排除 ${nInbox} 个系统自带组件` : "";
+      toast(`扫描完成：共 ${s.result.total} 项（${cats}）${inboxNote}`, "ok");
+      $("scan-status").textContent = `扫描完成，共 ${s.result.total} 项${inboxNote ? "（" + inboxNote.slice(1) + "）" : ""}。清单位置：${s.result.folder}`;
+      refreshStats(); refreshItems();
+    }
+  }
+}
+
+/* ---------- 清单操作 ---------- */
+$("search").addEventListener("input", ()=>refreshItems());
+$("filter-cat").addEventListener("change", ()=>refreshItems());
+$("btn-check-all").addEventListener("click", ()=>checkAll("all"));
+$("btn-check-none").addEventListener("click", ()=>checkAll("none"));
+$("btn-check-invert").addEventListener("click", ()=>checkAll("invert"));
+async function checkAll(mode){
+  await api("/api/items/checkall", {method:"POST", body:JSON.stringify({mode})});
+  refreshStats(); refreshItems();
+}
+$("btn-open-manifest").addEventListener("click", ()=>{
+  openPathBrowser("file", "", async (p)=>{
+    const r = await api("/api/manifest/open", {method:"POST", body:JSON.stringify({path:p})});
+    if(r.ok){ toast("已打开清单", "ok"); refreshStats(); refreshItems(); }
+  });
+});
+$("btn-save-manifest").addEventListener("click", async ()=>{
+  const cur = S.stats.manifest_path || "";
+  if(cur){ const r = await api("/api/manifest/save", {method:"POST", body:JSON.stringify({path:cur})}); if(r.ok) toast("清单已保存", "ok"); return; }
+  openPathBrowser("file", "manifest.json", async (p)=>{
+    const r = await api("/api/manifest/save", {method:"POST", body:JSON.stringify({path:p})});
+    if(r.ok){ toast("清单已保存", "ok"); refreshStats(); }
+  });
+});
+$("btn-add-item").addEventListener("click", ()=>openItemDialog(null));
+$("btn-edit-item").addEventListener("click", ()=>{
+  const tr = $("tbl-manifest").querySelector("tr[data-index]");
+  toast("请双击表格行进行编辑", "");
+});
+$("btn-del-item").addEventListener("click", async ()=>{
+  const trs = [...$("tbl-manifest").querySelectorAll("tr[data-index]")];
+  const idxs = trs.map(t=>+t.dataset.index);
+  if(!idxs.length){ toast("请先选中要删除的行", "err"); return; }
+  if(!confirm(`确定从清单中删除 ${idxs.length} 个条目吗？（不会卸载本机软件）`)) return;
+  const r = await api("/api/items/delete", {method:"POST", body:JSON.stringify({indexes:idxs})});
+  if(r.ok){ toast(r.message, "ok"); refreshStats(); refreshItems(); }
+});
+
+/* ---------- 条目编辑对话框 ---------- */
+function openItemDialog(item){
+  S.editingIndex = item ? item.index : -1;
+  S.editingLocalFile = item ? (item.local_file || "") : "";
+  $("item-dlg-title").textContent = item ? "编辑条目" : "新增条目";
+  $("f-name").value = item ? item.name : "";
+  $("f-version").value = item ? item.version : "";
+  $("f-publisher").value = item ? item.publisher : "";
+  $("f-category").innerHTML = CATEGORIES.map(c=>`<option ${item&&item.category===c?"selected":""}>${c}</option>`).join("");
+  $("f-method").innerHTML = Object.entries(METHOD_LABELS).map(([k,v])=>`<option value="${k}" ${item&&item.method===k?"selected":""}>${v}</option>`).join("");
+  // 本地安装包方式：文件信息放 local_file，对话框里仍用 target 框展示/编辑
+  $("f-target").value = item ? ((item.method==="local" ? (item.local_file||item.target||"") : (item.target||""))) : "";
+  $("f-silent").value = item ? (item.silent_args||"") : "";
+  $("f-notes").value = item ? (item.notes||"") : "";
+  $("f-desc").value = item ? (item.desc||"") : "";
+  $("f-enabled").checked = item ? item.enabled : true;
+  syncPlaceholder();
+  $("modal-item").classList.add("show");
+}
+function syncPlaceholder(){
+  const isLocal = $("f-method").value === "local";
+  $("f-target").placeholder = METHOD_PLACEHOLDERS[$("f-method").value] || "";
+  $("f-target-browse").style.display = isLocal ? "" : "none";
+}
+$("f-method").addEventListener("change", syncPlaceholder);
+$("f-target-browse").addEventListener("click", ()=>{
+  // 当前填的是相对文件名时，从本地安装包目录开始浏览
+  const cur = $("f-target").value.trim();
+  let start = "";
+  if(cur && /[\\/]/.test(cur)) start = cur.split(/[\\/]/).slice(0, -1).join("\\");
+  else start = (S.stats && S.stats.local_dir) || "";
+  openPathBrowser("installer", start, p=>{
+    //  picked 路径在本地安装包目录内时只记文件名，保证清单文件夹整体拷贝后仍可用
+    const ld = (S.stats && S.stats.local_dir) || "";
+    let v = p;
+    if(ld){
+      const ldNorm = ld.replace(/[\\\/]+$/, "").toLowerCase();
+      if(p.toLowerCase().startsWith(ldNorm + "\\")) v = p.slice(ldNorm.length + 1);
+    }
+    $("f-target").value = v;
+  });
+});
+$("item-cancel").addEventListener("click", ()=>$("modal-item").classList.remove("show"));
+$("item-ok").addEventListener("click", async ()=>{
+  const method = $("f-method").value;
+  const isLocal = method === "local";
+  const body = {
+    name:$("f-name").value.trim(), version:$("f-version").value.trim(), publisher:$("f-publisher").value.trim(),
+    category:$("f-category").value, method, target:isLocal ? "" : $("f-target").value.trim(),
+    silent_args:$("f-silent").value.trim(), notes:$("f-notes").value.trim(), desc:$("f-desc").value.trim(), enabled:$("f-enabled").checked,
+    local_file: isLocal ? $("f-target").value.trim() : (S.editingLocalFile || "")};
+  if(!body.name){ toast("名称不能为空", "err"); return; }
+  const r = S.editingIndex >= 0
+    ? await api("/api/items/update", {method:"POST", body:JSON.stringify({...body, index:S.editingIndex})})
+    : await api("/api/items", {method:"POST", body:JSON.stringify(body)});
+  if(r.ok){ $("modal-item").classList.remove("show"); toast(r.message, "ok"); refreshStats(); refreshItems(); }
+});
+
+/* ---------- 路径选择对话框 ---------- */
+let pathCurrent = "";
+function openPathBrowser(mode, initial, onPick){
+  S.pathMode = mode; S.pathOnPick = onPick;
+  $("path-title").textContent = mode === "dir" ? "选择文件夹"
+    : mode === "installer" ? "选择安装包（.exe / .msi）" : "选择文件";
+  pathCurrent = initial || "";
+  // 文件模式：记住默认文件名，未显式点选文件时跟随当前目录（避免写成相对路径落到程序工作目录）
+  const initName = (initial || "").split(/[\\/]/).pop();
+  S.pathDefaultName = (initName && initName.includes(".")) ? initName : "manifest.json";
+  S.pathPickedFile = initName || "";
+  $("path-selected").value = initial || "";
+  loadPath(pathCurrent || "");
+  $("modal-path").classList.add("show");
+}
+async function loadPath(p){
+  const ext = S.pathMode === "installer" ? ".exe,.msi" : ".json";
+  const r = await (await fetch("/api/browse?path=" + encodeURIComponent(p) + "&ext=" + ext)).json();
+  pathCurrent = r.path;
+  $("path-current").textContent = r.path;
+  $("path-current").title = r.path;
+  $("path-drives").innerHTML = (r.drives||[]).map(d=>`<button data-drive="${d}">${d}</button>`).join("");
+  $("path-drives").querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>loadPath(b.dataset.drive)));
+  let html = (r.dirs||[]).map(d=>`<div data-dir="${esc(d)}"><span class="ico">📁</span>${esc(d)}</div>`).join("");
+  if(S.pathMode !== "dir"){
+    html += (r.files||[]).map(f=>`<div data-file="${esc(f)}"><span class="ico">📦</span>${esc(f)}</div>`).join("");
+  }
+  $("path-list").innerHTML = html || `<div class="empty">（空）</div>`;
+  $("path-list").querySelectorAll("[data-dir]").forEach(d=>d.addEventListener("click", ()=>loadPath(r.path + "\\" + d.dataset.dir)));
+  $("path-list").querySelectorAll("[data-file]").forEach(d=>d.addEventListener("click", ()=>{
+    S.pathPickedFile = d.dataset.file;
+    $("path-selected").value = r.path + "\\" + d.dataset.file;
+  }));
+  if(S.pathMode === "dir"){
+    $("path-selected").value = r.path;
+  }else{
+    // 文件模式：路径框始终是「当前目录 + 文件名」，点选文件只换文件名
+    $("path-selected").value = r.path + "\\" + (S.pathPickedFile || S.pathDefaultName);
+  }
+}
+$("path-up").addEventListener("click", ()=>loadPath($("path-current").textContent.replace(/[^\\]+\\?$/, "") || ""));
+$("path-cancel").addEventListener("click", ()=>$("modal-path").classList.remove("show"));
+$("path-ok").addEventListener("click", ()=>{
+  const p = $("path-selected").value.trim();
+  if(!p){ toast("请先选择路径", "err"); return; }
+  $("modal-path").classList.remove("show");
+  if(S.pathOnPick) S.pathOnPick(p);
+});
+
+/* ---------- 安装 ---------- */
+$("btn-install").addEventListener("click", startInstall);
+$("btn-stop").addEventListener("click", async ()=>{ await api("/api/install/stop", {method:"POST", body:"{}"}); });
+$("btn-retry").addEventListener("click", async ()=>{
+  const r = await api("/api/install/retry", {method:"POST", body:"{}"});
+  if(r.ok) startPollingInstall();
+});
+$("btn-fixpath").addEventListener("click", async ()=>{
+  const r = await api("/api/fixpath", {method:"POST", body:"{}"});
+  if(r.ok) toast(r.message, "ok");
+});
+$("btn-probe").addEventListener("click", startProbe);
+async function startInstall(){
+  await refreshInstallItems();
+  const r = await api("/api/install/start", {method:"POST", body:JSON.stringify({force:$("opt-force").checked})});
+  if(!r.ok) return;
+  $("btn-install").disabled = true; $("btn-stop").disabled = false; $("btn-retry").disabled = true;
+  $("log").innerHTML = "";
+  startPollingInstall();
+}
+async function startProbe(){
+  const r = await api("/api/probe", {method:"POST", body:"{}"});
+  if(r.ok) startPollingProbe();
+}
+function startPollingProbe(){
+  if(S.probeTimer) clearInterval(S.probeTimer);
+  S.probeTimer = setInterval(pollProbe, 700);
+  pollProbe();
+}
+async function pollProbe(){
+  let s;
+  try { s = await (await fetch("/api/probe/status")).json(); } catch(e){ return; }
+  const wasRunning = S.probe && S.probe.running;
+  S.probe = s;
+  const el = $("probe-status");
+  if(s.running){
+    el.textContent = `正在检测系统现状… ${s.done||0}/${s.total||0}`;
+  }else if(s.error){
+    el.textContent = "检测失败：" + s.error;
+  }else if(s.at){
+    const ex = (s.summary && s.summary.exists) || 0, ms = (s.summary && s.summary.missing) || 0;
+    el.textContent = `现状检测（${s.at}）：${ex} 项已存在将跳过，${ms} 项待安装`;
+  }else{
+    el.textContent = "尚未检测 — 开始安装前会自动检测，也可点「检测系统现状」预览";
+  }
+  renderInstallTable();
+  if(s.running){
+    if(!S.probeTimer) startPollingProbe();
+  }else{
+    if(S.probeTimer){ clearInterval(S.probeTimer); S.probeTimer = null; }
+    if(wasRunning){
+      const ex = (s.summary && s.summary.exists) || 0, ms = (s.summary && s.summary.missing) || 0;
+      toast(`现状检测完成：${ex} 项已存在（将跳过安装），${ms} 项需要安装`, "ok");
+    }
+  }
+}
+function startPollingInstall(){
+  if(S.installTimer) clearInterval(S.installTimer);
+  S.installTimer = setInterval(pollInstall, 700);
+  pollInstall();
+}
+async function pollInstall(){
+  const s = await (await fetch("/api/install/status")).json();
+  S.installStatus = s;
+  const pct = s.total ? Math.round(100*(s.done||0)/s.total) : 0;
+  $("install-bar").style.width = pct + "%";
+  $("install-count").textContent = s.total ? `${s.done||0}/${s.total}` : "";
+  renderInstallTable();
+  const log = $("log");
+  log.innerHTML = (s.log||[]).map(l=>{
+    const cls = l.startsWith("[") && l.includes("$ ") ? "cmd" : (/失败|错误|异常/.test(l) ? "err" : (/成功|完成/.test(l) ? "ok" : ""));
+    return `<span class="${cls}">${esc(l)}</span>`;
+  }).join("\n");
+  log.scrollTop = log.scrollHeight;
+  if(!s.running){
+    clearInterval(S.installTimer); S.installTimer = null;
+    $("btn-install").disabled = false; $("btn-stop").disabled = true;
+    $("btn-retry").disabled = !(s.failed_keys && s.failed_keys.length);
+    if(s.summary){
+      toast(`安装结束：成功 ${s.summary.ok}，失败 ${s.summary.failed}，需手动 ${s.summary.manual}，已存在跳过 ${s.summary.exists||0}，跳过 ${s.summary.skipped}`, s.summary.failed?"err":"ok");
+      refreshStats(); refreshItems();
+    }
+  }
+}
+
+/* ---------- 帮助 ---------- */
+document.querySelector(".logo").addEventListener("click", ()=>$("modal-help").classList.add("show"));
+$("help-ok").addEventListener("click", ()=>$("modal-help").classList.remove("show"));
+document.querySelectorAll(".modal-mask").forEach(m=>m.addEventListener("click", e=>{ if(e.target===m) m.classList.remove("show"); }));
+
+/* ---------- 退出工具 ---------- */
+// 直接关标签/刷新不会退出后台进程，给用户一个确认机会（浏览器会显示通用提示）
+function exitGuard(e){ e.preventDefault(); e.returnValue = ""; }
+window.addEventListener("beforeunload", exitGuard);
+$("btn-exit").addEventListener("click", async ()=>{
+  if(!confirm("确定退出系统复原工具吗？\n退出后后台进程会一并结束，本页面将无法使用。")) return;
+  let r = null;
+  try{
+    r = await api("/api/shutdown", {method:"POST", body:"{}"});
+  }catch(e){
+    r = {ok:true};  // 服务端已先行关闭，连接失败也视为退出成功
+  }
+  if(r && r.ok){
+    window.removeEventListener("beforeunload", exitGuard);
+    document.body.innerHTML =
+      '<div style="display:flex;height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-family:system-ui,'+"'Microsoft YaHei';"+'">' +
+      '<div style="font-size:18px;font-weight:600;color:var(--text);">系统复原工具已退出</div>' +
+      '<div style="font-size:13px;color:var(--muted);">后台进程已结束，可以关闭此浏览器页面。</div></div>';
+    try{ window.close(); }catch(e){}
+  }
+});
+
+/* ---------- 初始化 ---------- */
+(async function init(){
+  await refreshStats();  // 先拿到 default_dir（桌面\SystemRestore）
+  const home = await (await fetch("/api/browse?path=")).json();
+  $("scan-folder").value = (S.stats && S.stats.default_dir)
+    || (home.path ? home.path.replace(/[\\\/]+$/, "") + "\\Desktop\\SystemRestore" : "");
+  // 本地安装包目录默认指向 清单位置\packages（未填时由后端按同样规则默认）
+  if(S.stats && S.stats.default_dir && !$("scan-localdir").value){
+    $("scan-localdir").value = S.stats.default_dir + "\\packages";
+  }
+  $("filter-cat").innerHTML = `<option value="全部">全部分类</option>` + CATEGORIES.map(c=>`<option>${c}</option>`).join("");
+  await refreshStats();
+  await refreshItems();
+  setInterval(()=>{ if(!S.scanTimer) pollScanQuiet(); }, 2000);
+})();
+async function pollScanQuiet(){
+  const s = await (await fetch("/api/scan/status")).json();
+  if(!s.running && s.result) $("scan-status").textContent = $("scan-status").textContent;
+}
+</script>
+</body>
+</html>

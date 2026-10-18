@@ -1,0 +1,14 @@
+本地安装包目录（示例）
+========================
+
+把下载好的软件安装包（.exe / .msi）放进这个文件夹，
+然后在工具里重新扫描，安装时会优先使用这里的文件本地安装
+（不联网、不依赖 winget 源）；本地文件找不到时会自动回退
+该条目原来的安装方式（winget / 直链等）。
+
+本目录是给 examples/sample-manifest.json 演示用的：
+清单里「Google Chrome」条目引用了 ChromeSetup.exe、
+「公司内部工具 Demo」条目引用了 CompanyToolSetup.exe，
+真实使用时换成你自己的安装包即可。
+
+卸载程序（unins*.exe）和本工具自身的 exe 会被自动忽略。

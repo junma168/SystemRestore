@@ -1,0 +1,253 @@
+{
+  "schema": "sysrestore-manifest",
+  "version": 1,
+  "meta": {
+    "app": "系统复原工具 SystemRestore",
+    "app_version": "1.4.0",
+    "created": "2026-10-18T12:00:00",
+    "os": "Windows 11 Pro 25H2 (build 26200)",
+    "user_profile": "C:\\Users\\OldName",
+    "local_dir": "packages",
+    "note": "合成样例清单，仅用于演示格式与测试，非真实扫描结果"
+  },
+  "path_env": {
+    "system": [
+      "C:\\Program Files\\Git\\cmd",
+      "C:\\Program Files\\nodejs\\",
+      "C:\\Program Files\\Python313\\Scripts\\"
+    ],
+    "user": [
+      "C:\\Users\\Demo\\AppData\\Roaming\\npm"
+    ]
+  },
+  "config_backup_dir": "configs",
+  "items": [
+    {
+      "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64)",
+      "version": "14.42.34433.0",
+      "publisher": "Microsoft Corporation",
+      "method": "winget",
+      "target": "Microsoft.VCRedist.2015+.x64",
+      "category": "运行库",
+      "enabled": true,
+      "source": "registry"
+    },
+    {
+      "name": "Microsoft .NET Desktop Runtime 8.0",
+      "version": "8.0.11",
+      "publisher": "Microsoft Corporation",
+      "method": "winget",
+      "target": "Microsoft.DotNet.DesktopRuntime.8",
+      "category": "运行库",
+      "enabled": true,
+      "source": "registry"
+    },
+    {
+      "name": "Git",
+      "version": "2.47.1",
+      "publisher": "The Git Development Community",
+      "method": "winget",
+      "target": "Git.Git",
+      "category": "开发工具",
+      "enabled": true,
+      "source": "probe"
+    },
+    {
+      "name": "Node.js LTS",
+      "version": "22.14.0",
+      "publisher": "OpenJS Foundation",
+      "method": "winget",
+      "target": "OpenJS.NodeJS.LTS",
+      "category": "开发工具",
+      "enabled": true,
+      "source": "probe"
+    },
+    {
+      "name": "Python 3.13",
+      "version": "3.13.7",
+      "publisher": "Python Software Foundation",
+      "method": "winget",
+      "target": "Python.Python.3.13",
+      "category": "开发工具",
+      "enabled": true,
+      "source": "probe"
+    },
+    {
+      "name": "Temurin JDK 21",
+      "version": "21.0.5+11",
+      "publisher": "Eclipse Adoptium",
+      "method": "winget",
+      "target": "EclipseAdoptium.Temurin.21.JDK",
+      "category": "开发工具",
+      "enabled": true,
+      "source": "registry"
+    },
+    {
+      "name": "Visual Studio Code",
+      "version": "1.96.4",
+      "publisher": "Microsoft Corporation",
+      "method": "winget",
+      "target": "Microsoft.VisualStudioCode",
+      "category": "开发工具",
+      "enabled": true,
+      "source": "probe",
+      "extra": {
+        "extensions": [
+          "ms-python.python",
+          "dbaeumer.vscode-eslint",
+          "esbenp.prettier-vscode"
+        ]
+      }
+    },
+    {
+      "name": "Docker Desktop",
+      "version": "4.38.0",
+      "publisher": "Docker Inc.",
+      "method": "winget",
+      "target": "Docker.DockerDesktop",
+      "category": "开发工具",
+      "enabled": true,
+      "source": "registry"
+    },
+    {
+      "name": "Google Chrome",
+      "version": "131.0.6778.86",
+      "publisher": "Google LLC",
+      "method": "winget",
+      "target": "Google.Chrome",
+      "local_file": "ChromeSetup.exe",
+      "category": "应用软件",
+      "enabled": true,
+      "source": "registry"
+    },
+    {
+      "name": "公司内部工具 Demo",
+      "version": "3.2.1",
+      "publisher": "内部 IT",
+      "method": "local",
+      "target": "",
+      "local_file": "CompanyToolSetup.exe",
+      "category": "应用软件",
+      "enabled": true,
+      "notes": "winget 未收录，使用本地安装包安装（目录：packages）",
+      "desc": "公司内部分发工具，重装后从本地安装包恢复",
+      "source": "local"
+    },
+    {
+      "name": "7-Zip 24.09",
+      "version": "24.09",
+      "publisher": "Igor Pavlov",
+      "method": "winget",
+      "target": "7zip.7zip",
+      "category": "应用软件",
+      "enabled": true,
+      "source": "winget"
+    },
+    {
+      "name": "Notepad++",
+      "version": "8.7.2",
+      "publisher": "Don Ho",
+      "method": "winget",
+      "target": "Notepad++.Notepad++",
+      "category": "应用软件",
+      "enabled": false,
+      "source": "winget"
+    },
+    {
+      "name": "OBS Studio",
+      "version": "30.2.3",
+      "publisher": "OBS Project",
+      "method": "url",
+      "target": "https://cdn.example.com/obs-studio/30.2.3/OBS-Studio-30.2.3-Full-Installer-x64.exe",
+      "silent_args": "/S",
+      "category": "应用软件",
+      "enabled": true,
+      "source": "registry",
+      "notes": "官方 NSIS 安装包，静默参数 /S"
+    },
+    {
+      "name": "某些绿色软件",
+      "version": "",
+      "publisher": "",
+      "method": "manual",
+      "target": "",
+      "category": "应用软件",
+      "enabled": true,
+      "source": "registry",
+      "notes": "注册表有记录但安装包来源已失效，需手动下载安装"
+    },
+    {
+      "name": "Ubuntu 24.04 LTS",
+      "version": "",
+      "publisher": "Canonical Group Limited",
+      "method": "wsl",
+      "target": "Ubuntu-24.04",
+      "category": "WSL",
+      "enabled": true,
+      "source": "wsl"
+    },
+    {
+      "name": "typescript",
+      "version": "5.7.2",
+      "publisher": "npm",
+      "method": "npm",
+      "target": "typescript@5.7.2",
+      "category": "npm 全局包",
+      "enabled": true,
+      "source": "npm"
+    },
+    {
+      "name": "yarn",
+      "version": "1.22.22",
+      "publisher": "npm",
+      "method": "npm",
+      "target": "yarn@1.22.22",
+      "category": "npm 全局包",
+      "enabled": true,
+      "source": "npm"
+    },
+    {
+      "name": "requests",
+      "version": "2.32.3",
+      "publisher": "pip",
+      "method": "pip",
+      "target": "requests==2.32.3",
+      "category": "Python 包",
+      "enabled": true,
+      "source": "pip"
+    },
+    {
+      "name": "VS Code 用户配置",
+      "version": "",
+      "publisher": "",
+      "method": "config",
+      "target": "vscode",
+      "category": "配置文件",
+      "enabled": true,
+      "source": "config",
+      "notes": "2 个文件/目录的备份",
+      "extra": {
+        "files": [
+          {"orig": "C:\\Users\\OldName\\AppData\\Roaming\\Code\\User\\settings.json", "backup": "vscode/settings.json"},
+          {"orig": "C:\\Users\\OldName\\AppData\\Roaming\\Code\\User\\keybindings.json", "backup": "vscode/keybindings.json"}
+        ]
+      }
+    },
+    {
+      "name": "Git 全局配置",
+      "version": "",
+      "publisher": "",
+      "method": "config",
+      "target": "git",
+      "category": "配置文件",
+      "enabled": true,
+      "source": "config",
+      "notes": "1 个文件/目录的备份",
+      "extra": {
+        "files": [
+          {"orig": "C:\\Users\\OldName\\.gitconfig", "backup": "git/.gitconfig"}
+        ]
+      }
+    }
+  ]
+}

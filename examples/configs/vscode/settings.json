@@ -1,0 +1,8 @@
+{
+  "editor.fontSize": 14,
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "files.autoSave": "onFocusChange",
+  "terminal.integrated.fontSize": 13,
+  "workbench.colorTheme": "Default Dark Modern"
+}

@@ -1,0 +1,4 @@
+// 合成样例：VS Code 键位覆盖（JSON with Comments）
+[
+  { "key": "ctrl+shift+t", "command": "workbench.action.reopenClosedEditor" }
+]
