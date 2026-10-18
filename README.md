@@ -159,6 +159,8 @@ build.bat
 
 产物为 `dist/SystemRestore.exe`（单文件，约 10 MB），拷贝到任何 Windows 电脑即可运行，不需要 Python 环境。
 
+> 本仓库的 `dist/` 目录下已附带当前版本（v1.4.0）打包好的 `SystemRestore.exe`，不想自己打包的话，直接从仓库下载这个文件即可使用。
+
 ---
 
 ## 六、常见问题 FAQ
